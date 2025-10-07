@@ -1,0 +1,27 @@
+# This file specifies files that are _not_ uploaded to Google Cloud
+
+.gcloudignore
+.git
+.gitignore
+node_modules
+venv/
+**pycache**/
+_.pyc
+_.pyo
+_.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+_.egg-info/
+.env
+.vscode/
+.idea/
+_.log
+tests/
+scripts/
+contracts/
+interfaces/
+reports/
+_.md

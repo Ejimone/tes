@@ -277,7 +277,6 @@ def main():
         multiple_registrations(contract)
         print("check duplicate")
         check_duplicate(contract, address)
-
         print("get all  user details")
         get_user_details(contract, address)
 

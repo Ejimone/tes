@@ -2,6 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from Registrations import app as registrations_router
 from chatservices import app as chatservices_router
+import os
+
+try:
+    from config import ALLOWED_ORIGINS
+except ImportError:
+    ALLOWED_ORIGINS = ["*"]
 
 # Create FastAPI application
 app = FastAPI(
@@ -15,7 +21,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update this in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

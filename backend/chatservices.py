@@ -5,25 +5,35 @@ from web3 import Web3
 from web3.middleware import geth_poa_middleware
 import json
 import os
+try:
+    from config import BLOCKCHAIN_RPC_URL, CONTRACT_ADDRESS as CONFIG_CONTRACT_ADDRESS
+except ImportError:
+    # Fallback for local development
+    BLOCKCHAIN_RPC_URL = os.getenv("BLOCKCHAIN_RPC_URL", "http://127.0.0.1:7545")
+    CONFIG_CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS", "0xa2691703072E2821b9EE1698F05309289FA226c1")
 
 app = APIRouter()
 
 # Initialize Web3 connection
-w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545"))
+w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_RPC_URL))
 w3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
 # Load contract ABI from build artifacts
-contract_path = os.path.join(os.path.dirname(__file__), '..', 'build', 'contracts', 'Whatsapp.json')
+contract_path = os.path.join(os.path.dirname(__file__), 'build', 'contracts', 'Whatsapp.json')
+if not os.path.exists(contract_path):
+    # Try parent directory for local development
+    contract_path = os.path.join(os.path.dirname(__file__), '..', 'build', 'contracts', 'Whatsapp.json')
+
 with open(contract_path, 'r') as f:
     contract_data = json.load(f)
     contract_abi = contract_data['abi']
 
-# Contract address - Should match Registrations.py
-CONTRACT_ADDRESS = "0xa2691703072E2821b9EE1698F05309289FA226c1"  # UPDATE THIS AFTER DEPLOYMENT
+# Contract address from config
+CONTRACT_ADDRESS = CONFIG_CONTRACT_ADDRESS
 
 # Initialize contract instance
 contract = None
-if CONTRACT_ADDRESS:
+if CONTRACT_ADDRESS and CONTRACT_ADDRESS != "":
     contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
 
