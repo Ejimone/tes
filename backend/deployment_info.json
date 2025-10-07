@@ -1,0 +1,8 @@
+{
+  "contract_address": "0xa2691703072E2821b9EE1698F05309289FA226c1",
+  "deployer": "0x6eFDc0baBB9473295ff1111d2C21383A1ac24a92",
+  "network": "ganache",
+  "transaction_hash": "0x62fdc867e853c4154f314232106bc675a690ed657ba8f7706db33ba85f21be73",
+  "gas_used": 3273542,
+  "block_number": 297
+}
