@@ -120,26 +120,46 @@ const ChatInterface = () => {
     return (
       <div className="whatsapp-container">
         <div className="welcome-card">
-          <div className="logo">
-            💬
-          </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b4a54', marginBottom: '8px' }}>
+          <div className="logo">💬</div>
+          <h1
+            style={{
+              fontSize: "2rem",
+              fontWeight: "bold",
+              color: "#3b4a54",
+              marginBottom: "8px",
+            }}
+          >
             WhatsApp Web3
           </h1>
-          <p className="text-gray">
-            Decentralized messaging on the blockchain
-          </p>
+          <p className="text-gray">Decentralized messaging on the blockchain</p>
 
-          <div style={{ marginTop: '32px' }}>
-            <div style={{ 
-              background: '#e8f5e8', 
-              padding: '16px', 
-              borderRadius: '8px', 
-              marginBottom: '20px',
-              textAlign: 'left'
-            }}>
-              <h3 style={{ fontWeight: '600', color: '#00a884', marginBottom: '8px' }}>🚀 Features</h3>
-              <ul style={{ fontSize: '14px', color: '#00a884', listStyle: 'none', padding: 0 }}>
+          <div style={{ marginTop: "32px" }}>
+            <div
+              style={{
+                background: "#e8f5e8",
+                padding: "16px",
+                borderRadius: "8px",
+                marginBottom: "20px",
+                textAlign: "left",
+              }}
+            >
+              <h3
+                style={{
+                  fontWeight: "600",
+                  color: "#00a884",
+                  marginBottom: "8px",
+                }}
+              >
+                🚀 Features
+              </h3>
+              <ul
+                style={{
+                  fontSize: "14px",
+                  color: "#00a884",
+                  listStyle: "none",
+                  padding: 0,
+                }}
+              >
                 <li>• Connect with MetaMask wallet</li>
                 <li>• Send messages on Sepolia testnet</li>
                 <li>• Decentralized & secure</li>
@@ -151,13 +171,20 @@ const ChatInterface = () => {
               onClick={connectWallet}
               disabled={isLoading}
               className="button"
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              {isLoading ? '⏳ ' : '👛 '}
+              {isLoading ? "⏳ " : "👛 "}
               Connect MetaMask
             </button>
 
-            <p style={{ fontSize: '12px', color: '#667781', marginTop: '12px' }}>
+            <p
+              style={{ fontSize: "12px", color: "#667781", marginTop: "12px" }}
+            >
               Make sure you're on Sepolia testnet
             </p>
           </div>
@@ -169,18 +196,23 @@ const ChatInterface = () => {
   // Network Warning
   if (!isCorrectNetwork()) {
     return (
-      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+      <div className="whatsapp-container">
+        <div className="welcome-card">
+          <div style={{ fontSize: '4rem', marginBottom: '16px' }}>⚠️</div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b4a54', marginBottom: '16px' }}>
             Wrong Network
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray" style={{ marginBottom: '24px' }}>
             Please switch to Sepolia testnet to use this application.
           </p>
           <button
             onClick={switchToSepolia}
-            className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="button"
+            style={{ 
+              width: '100%', 
+              backgroundColor: '#dc3545',
+              ':hover': { backgroundColor: '#c82333' }
+            }}
           >
             Switch to Sepolia
           </button>
