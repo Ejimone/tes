@@ -198,20 +198,27 @@ const ChatInterface = () => {
     return (
       <div className="whatsapp-container">
         <div className="welcome-card">
-          <div style={{ fontSize: '4rem', marginBottom: '16px' }}>⚠️</div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b4a54', marginBottom: '16px' }}>
+          <div style={{ fontSize: "4rem", marginBottom: "16px" }}>⚠️</div>
+          <h2
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+              color: "#3b4a54",
+              marginBottom: "16px",
+            }}
+          >
             Wrong Network
           </h2>
-          <p className="text-gray" style={{ marginBottom: '24px' }}>
+          <p className="text-gray" style={{ marginBottom: "24px" }}>
             Please switch to Sepolia testnet to use this application.
           </p>
           <button
             onClick={switchToSepolia}
             className="button"
-            style={{ 
-              width: '100%', 
-              backgroundColor: '#dc3545',
-              ':hover': { backgroundColor: '#c82333' }
+            style={{
+              width: "100%",
+              backgroundColor: "#dc3545",
+              ":hover": { backgroundColor: "#c82333" },
             }}
           >
             Switch to Sepolia
