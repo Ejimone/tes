@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { ethers } from "ethers";
 import toast from "react-hot-toast";
 
@@ -23,6 +29,10 @@ export const Web3Provider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [chainId, setChainId] = useState(null);
+  const [privateKey, setPrivateKey] = useState(() => {
+    // Initialize from sessionStorage if available
+    return sessionStorage.getItem("temp_private_key");
+  });
 
   // Check if MetaMask is installed
   const isMetaMaskInstalled = () => {
@@ -75,7 +85,7 @@ export const Web3Provider = ({ children }) => {
   };
 
   // Connect to MetaMask
-  const connectWallet = async () => {
+  const connectWallet = useCallback(async () => {
     if (!isMetaMaskInstalled()) {
       toast.error(
         "MetaMask is not installed. Please install MetaMask to continue."
@@ -106,7 +116,7 @@ export const Web3Provider = ({ children }) => {
 
       // Switch to Sepolia if not already
       if (currentChainId !== SEPOLIA_CHAIN_ID) {
-        toast.loading("Switching to Sepolia network...");
+        toast.success("Switching to Sepolia network...");
         await switchToSepolia();
       }
 
@@ -120,9 +130,7 @@ export const Web3Provider = ({ children }) => {
       setChainId(currentChainId);
       setIsConnected(true);
 
-      toast.success(
-        `Connected to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`
-      );
+      // Connection successful - toast will be shown by account change handler if needed
 
       // Store connection in localStorage
       localStorage.setItem("isWalletConnected", "true");
@@ -132,7 +140,7 @@ export const Web3Provider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // Empty dependency array for useCallback
 
   // Disconnect wallet
   const disconnectWallet = () => {
@@ -141,14 +149,50 @@ export const Web3Provider = ({ children }) => {
     setSigner(null);
     setIsConnected(false);
     setChainId(null);
+    clearPrivateKey(); // Clear stored private key for security
     localStorage.removeItem("isWalletConnected");
     toast.success("Wallet disconnected");
+  };
+
+  // Get private key (prompt only once per session)
+  const getPrivateKey = async () => {
+    if (privateKey) {
+      return privateKey; // Return stored private key
+    }
+
+    const userPrivateKey = prompt(
+      "🔐 Enter your private key for blockchain transactions:\n\n⚠️ SECURITY NOTE: This is for demo purposes only!\n• Your key will be stored temporarily in this session\n• Never share your real private key in production apps\n• Consider this a development/testing feature only\n\nPrivate Key:"
+    );
+
+    if (!userPrivateKey) {
+      throw new Error("Private key is required for blockchain transactions");
+    }
+
+    // Validate private key format
+    if (!userPrivateKey.match(/^(0x)?[a-fA-F0-9]{64}$/)) {
+      throw new Error("Invalid private key format");
+    }
+
+    // Store in both state and sessionStorage for persistence
+    setPrivateKey(userPrivateKey);
+    sessionStorage.setItem("temp_private_key", userPrivateKey);
+    return userPrivateKey;
+  };
+
+  // Clear private key (for logout or security)
+  const clearPrivateKey = () => {
+    setPrivateKey(null);
+    sessionStorage.removeItem("temp_private_key");
+    toast.success("Private key cleared for security");
   };
 
   // Check if user is registered
   const checkUserRegistration = async (address) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${address}/exists`);
+      const checksummedAddress = ethers.getAddress(address); // Convert to checksummed address
+      const response = await fetch(
+        `${API_BASE_URL}/users/${checksummedAddress}/exists`
+      );
       const data = await response.json();
       return data.exists;
     } catch (error) {
@@ -167,15 +211,8 @@ export const Web3Provider = ({ children }) => {
     try {
       setIsLoading(true);
 
-      // Get private key from user (for demo purposes - in production, use different approach)
-      const privateKey = prompt(
-        "Enter your private key for registration (DEMO ONLY - NEVER share your real private key!):"
-      );
-
-      if (!privateKey) {
-        toast.error("Private key is required for registration");
-        return false;
-      }
+      // Get private key (will be stored in session for seamless experience)
+      const userPrivateKey = await getPrivateKey();
 
       const response = await fetch(`${API_BASE_URL}/users/register`, {
         method: "POST",
@@ -183,9 +220,9 @@ export const Web3Provider = ({ children }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          address: account,
+          address: ethers.getAddress(account), // Convert to checksummed address
           name: name,
-          private_key: privateKey,
+          private_key: userPrivateKey,
         }),
       });
 
@@ -224,15 +261,16 @@ export const Web3Provider = ({ children }) => {
         return false;
       }
 
-      // Get private key (for demo - in production, use wallet signing)
-      const privateKey = prompt(
-        "Enter your private key to send message (DEMO ONLY):"
-      );
+      // Get private key (stored from previous input for seamless experience)
+      const userPrivateKey = await getPrivateKey();
 
-      if (!privateKey) {
-        toast.error("Private key is required to send message");
-        return false;
-      }
+      const fromAddr = ethers.getAddress(account);
+      const toAddr = ethers.getAddress(toAddress);
+
+      console.log(`📨 Sending message:`);
+      console.log(`   From: ${fromAddr}`);
+      console.log(`   To: ${toAddr}`);
+      console.log(`   Content: "${content}"`);
 
       const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: "POST",
@@ -240,20 +278,24 @@ export const Web3Provider = ({ children }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from_address: account,
-          to_address: toAddress,
+          from_address: fromAddr, // Convert to checksummed address
+          to_address: toAddr, // Convert to checksummed address
           content: content,
           is_media: false,
-          private_key: privateKey,
+          private_key: userPrivateKey,
         }),
       });
 
       const data = await response.json();
+      console.log(`📥 Send response status: ${response.status}`);
+      console.log(`📥 Send response data:`, data);
 
       if (response.ok) {
+        console.log(`✅ Message sent successfully!`);
         toast.success("Message sent successfully!");
         return true;
       } else {
+        console.error(`❌ Send failed:`, data.detail);
         toast.error(data.detail || "Failed to send message");
         return false;
       }
@@ -269,27 +311,101 @@ export const Web3Provider = ({ children }) => {
   // Get chat messages
   const getChatMessages = async (user1Address, user2Address) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/chat`, {
+      // Ensure consistent address ordering (lexicographically) for chat ID calculation
+      const addr1 = ethers.getAddress(user1Address);
+      const addr2 = ethers.getAddress(user2Address);
+
+      console.log(`🔍 Fetching messages between:`);
+      console.log(`   User 1: ${addr1}`);
+      console.log(`   User 2: ${addr2}`);
+
+      // Try both address orders to ensure we get all messages
+      const payload1 = {
+        user1_address: addr1,
+        user2_address: addr2,
+      };
+
+      const payload2 = {
+        user1_address: addr2,
+        user2_address: addr1,
+      };
+
+      console.log(`📤 Trying payload 1:`, payload1);
+
+      const response1 = await fetch(`${API_BASE_URL}/messages/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          user1_address: user1Address,
-          user2_address: user2Address,
-        }),
+        body: JSON.stringify(payload1),
       });
 
-      const data = await response.json();
+      const data1 = await response1.json();
+      console.log(`📥 Response 1 status: ${response1.status}`);
+      console.log(`📥 Response 1 data:`, data1);
 
-      if (response.ok) {
-        return data.messages || [];
-      } else {
-        console.error("Failed to get chat messages:", data.detail);
-        return [];
+      let allMessages = [];
+
+      if (response1.ok && data1.messages) {
+        allMessages = [...data1.messages];
+        console.log(`✅ Found ${data1.messages.length} messages with order 1`);
       }
+
+      // Try reverse order to catch any missed messages
+      console.log(`📤 Trying payload 2:`, payload2);
+
+      const response2 = await fetch(`${API_BASE_URL}/messages/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload2),
+      });
+
+      const data2 = await response2.json();
+      console.log(`� Response 2 status: ${response2.status}`);
+      console.log(`📥 Response 2 data:`, data2);
+
+      if (response2.ok && data2.messages) {
+        // Add messages from second call, avoiding duplicates
+        const existingIds = new Set(
+          allMessages.map(
+            (msg) =>
+              msg.id || `${msg.from_address}-${msg.to_address}-${msg.timestamp}`
+          )
+        );
+        const newMessages = data2.messages.filter(
+          (msg) =>
+            !existingIds.has(
+              msg.id || `${msg.from_address}-${msg.to_address}-${msg.timestamp}`
+            )
+        );
+        allMessages = [...allMessages, ...newMessages];
+        console.log(
+          `✅ Found ${data2.messages.length} messages with order 2, ${newMessages.length} new`
+        );
+      }
+
+      // Sort messages by timestamp
+      allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      console.log(`🎯 Total unique messages: ${allMessages.length}`);
+      if (allMessages.length > 0) {
+        console.log(
+          `📋 All message details:`,
+          allMessages.map((msg) => ({
+            from: msg.from_address,
+            to: msg.to_address,
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }))
+        );
+      }
+
+      return allMessages;
     } catch (error) {
-      console.error("Error getting chat messages:", error);
+      console.error("💥 Error getting chat messages:", error);
+      toast.error("Failed to load messages");
       return [];
     }
   };
@@ -297,10 +413,11 @@ export const Web3Provider = ({ children }) => {
   // Auto-connect if previously connected
   useEffect(() => {
     const wasConnected = localStorage.getItem("isWalletConnected");
-    if (wasConnected === "true" && isMetaMaskInstalled()) {
+    if (wasConnected === "true" && isMetaMaskInstalled() && !isConnected) {
       connectWallet();
     }
-  }, [connectWallet]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run only once
 
   // Listen for account changes
   useEffect(() => {
@@ -308,18 +425,22 @@ export const Web3Provider = ({ children }) => {
       const handleAccountsChanged = (accounts) => {
         if (accounts.length === 0) {
           disconnectWallet();
-        } else if (accounts[0] !== account) {
+        } else if (accounts[0] !== account && account) {
+          // Only show toast if account was already set
           setAccount(accounts[0]);
-          toast.info(
+          toast.success(
             `Switched to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`
           );
+        } else if (accounts[0] !== account) {
+          setAccount(accounts[0]); // Set account without toast on initial connection
         }
       };
 
       const handleChainChanged = (newChainId) => {
         setChainId(newChainId);
-        if (newChainId !== SEPOLIA_CHAIN_ID) {
-          toast.warning("Please switch to Sepolia network");
+        // Only show network warning if we were previously connected to Sepolia
+        if (newChainId !== SEPOLIA_CHAIN_ID && chainId === SEPOLIA_CHAIN_ID) {
+          toast.error("Please switch to Sepolia network");
         }
       };
 
@@ -334,7 +455,7 @@ export const Web3Provider = ({ children }) => {
         window.ethereum.removeListener("chainChanged", handleChainChanged);
       };
     }
-  }, [account]);
+  }, [account, chainId]);
 
   const value = {
     account,
@@ -343,6 +464,7 @@ export const Web3Provider = ({ children }) => {
     isConnected,
     isLoading,
     chainId,
+    privateKey, // Export private key state for UI indication
     isMetaMaskInstalled,
     isCorrectNetwork,
     connectWallet,
@@ -352,6 +474,7 @@ export const Web3Provider = ({ children }) => {
     registerUser,
     sendMessage,
     getChatMessages,
+    clearPrivateKey, // Export for logout functionality
   };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;

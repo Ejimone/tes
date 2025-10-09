@@ -8,6 +8,7 @@ const ChatInterface = () => {
     isConnected,
     isLoading,
     isCorrectNetwork,
+    privateKey,
     connectWallet,
     disconnectWallet,
     switchToSepolia,
@@ -15,6 +16,7 @@ const ChatInterface = () => {
     registerUser,
     sendMessage,
     getChatMessages,
+    clearPrivateKey,
   } = useWeb3();
 
   const [currentView, setCurrentView] = useState("home"); // 'home', 'register', 'chat'
@@ -94,12 +96,23 @@ const ChatInterface = () => {
       return;
     }
 
-    const success = await sendMessage(chatPartner, messageContent);
-    if (success) {
-      // Refresh messages
-      const messages = await getChatMessages(account, chatPartner);
-      setChatMessages(messages);
-      setMessageContent("");
+    try {
+      const success = await sendMessage(chatPartner, messageContent);
+      if (success) {
+        // Clear message immediately for better UX
+        setMessageContent("");
+
+        // Refresh messages after a short delay to ensure backend is updated
+        setTimeout(async () => {
+          const messages = await getChatMessages(account, chatPartner);
+          setChatMessages(messages);
+        }, 1000);
+
+        toast.success("Message sent! 📨");
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast.error("Failed to send message. Please try again.");
     }
   };
 
@@ -231,35 +244,38 @@ const ChatInterface = () => {
   // Registration Screen
   if (currentView === "register") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-          <div className="text-center mb-6">
-            <User className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+      <div className="whatsapp-container">
+        <div className="form-section">
+          <div className="text-center mb-4">
+            <div style={{ fontSize: "4rem", marginBottom: "16px" }}>👤</div>
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                color: "#3b4a54",
+                marginBottom: "8px",
+              }}
+            >
               Complete Registration
             </h2>
-            <p className="text-gray-600">
-              Choose a display name for your account
-            </p>
+            <p className="text-gray">Choose a display name for your account</p>
           </div>
 
-          <div className="bg-green-50 p-4 rounded-lg mb-6">
-            <p className="text-sm text-green-800">
+          <div className="wallet-info">
+            <p style={{ fontSize: "14px" }}>
               <strong>Connected:</strong> {formatAddress(account)}
             </p>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Display Name
-              </label>
+          <form onSubmit={handleRegister}>
+            <div className="form-group">
+              <label className="label">Display Name</label>
               <input
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="input"
                 required
               />
             </div>
@@ -267,20 +283,23 @@ const ChatInterface = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+              className="button"
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              {isLoading ? (
-                <Loader className="w-5 h-5 animate-spin mr-2" />
-              ) : (
-                <CheckCircle className="w-5 h-5 mr-2" />
-              )}
+              {isLoading ? "⏳ " : "✅ "}
               Register Account
             </button>
           </form>
 
           <button
             onClick={disconnectWallet}
-            className="w-full mt-4 text-gray-500 hover:text-gray-700 font-medium py-2"
+            className="button-secondary"
+            style={{ width: "100%", marginTop: "16px" }}
           >
             Disconnect Wallet
           </button>
@@ -292,155 +311,239 @@ const ChatInterface = () => {
   // Chat Interface
   if (currentView === "chat") {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col">
-        {/* Header */}
-        <div className="bg-green-500 text-white p-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <button
-              onClick={() => setCurrentView("home")}
-              className="mr-4 text-white hover:text-green-200"
-            >
-              ←
-            </button>
-            <div>
-              <h3 className="font-semibold">Chat with</h3>
-              <p className="text-sm text-green-100">
-                {formatAddress(chatPartner)}
+      <div className="whatsapp-container">
+        <div className="chat-interface">
+          {/* Header */}
+          <div className="chat-header">
+            <div className="flex items-center">
+              <button
+                onClick={() => setCurrentView("home")}
+                style={{
+                  marginRight: "16px",
+                  background: "none",
+                  border: "none",
+                  color: "white",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                }}
+              >
+                ← Back
+              </button>
+              <div>
+                <h3 style={{ fontWeight: "600", margin: 0 }}>Chat with</h3>
+                <p style={{ fontSize: "14px", margin: 0, opacity: 0.8 }}>
+                  {formatAddress(chatPartner)}
+                </p>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: "14px", margin: 0 }}>You</p>
+              <p style={{ fontSize: "12px", margin: 0, opacity: 0.8 }}>
+                {formatAddress(account)}
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-green-100">You</p>
-            <p className="text-xs text-green-200">{formatAddress(account)}</p>
-          </div>
-        </div>
 
-        {/* Messages */}
-        <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-          {chatMessages.length === 0 ? (
-            <div className="text-center text-gray-500 mt-20">
-              <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  msg.sender.toLowerCase() === account.toLowerCase()
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
-              >
+          {/* Messages */}
+          <div className="chat-messages">
+            {chatMessages.length === 0 ? (
+              <div className="loading">
+                <div style={{ fontSize: "3rem", marginBottom: "16px" }}>💬</div>
+                <p>No messages yet. Start the conversation!</p>
+              </div>
+            ) : (
+              chatMessages.map((msg, index) => (
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${
+                  key={index}
+                  className={`message ${
                     msg.sender.toLowerCase() === account.toLowerCase()
-                      ? "bg-green-500 text-white"
-                      : "bg-white text-gray-800 border"
+                      ? "sent"
+                      : "received"
                   }`}
                 >
-                  <p className="text-sm">{msg.content}</p>
-                  <p className="text-xs opacity-75 mt-1">
-                    {formatTimestamp(msg.timestamp)}
-                  </p>
+                  <div className="message-bubble">
+                    <div className="message-content">{msg.content}</div>
+                    <div className="message-time">
+                      {formatTimestamp(msg.timestamp)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
 
-        {/* Message Input */}
-        <form onSubmit={handleSendMessage} className="p-4 bg-white border-t">
-          <div className="flex space-x-2">
+          {/* Message Input */}
+          <form onSubmit={handleSendMessage} className="chat-input">
             <input
               type="text"
               value={messageContent}
               onChange={(e) => setMessageContent(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
             <button
               type="submit"
               disabled={isLoading || !messageContent.trim()}
-              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white p-2 rounded-lg transition-colors"
+              className="send-button"
             >
-              <Send className="w-5 h-5" />
+              ➤
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     );
   }
 
   // Home Screen
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="whatsapp-container">
       {/* Header */}
-      <div className="bg-green-500 text-white p-4 flex items-center justify-between">
+      <div
+        style={{
+          background: "#00a884",
+          color: "white",
+          padding: "16px 20px",
+          borderRadius: "12px",
+          marginBottom: "20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <div>
-          <h1 className="text-xl font-bold">WhatsApp Web3</h1>
-          <p className="text-sm text-green-100">Decentralized Messaging</p>
+          <h1 style={{ fontSize: "1.25rem", fontWeight: "bold", margin: 0 }}>
+            WhatsApp Web3
+          </h1>
+          <p style={{ fontSize: "14px", margin: 0, opacity: 0.8 }}>
+            Decentralized Messaging
+          </p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-green-100">{formatAddress(account)}</p>
-          <button
-            onClick={disconnectWallet}
-            className="text-xs text-green-200 hover:text-white"
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontSize: "14px", margin: 0, opacity: 0.8 }}>
+            {formatAddress(account)}
+          </p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginTop: "4px",
+            }}
           >
-            Disconnect
-          </button>
+            {privateKey ? (
+              <>
+                <span
+                  style={{ fontSize: "12px", opacity: 0.8, color: "#90EE90" }}
+                >
+                  🔐 Key Stored
+                </span>
+                <button
+                  onClick={clearPrivateKey}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "rgba(255,255,255,0.8)",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Clear Key
+                </button>
+              </>
+            ) : (
+              <span
+                style={{ fontSize: "12px", opacity: 0.8, color: "#FFB6C1" }}
+              >
+                🔓 No Key Stored
+              </span>
+            )}
+            <button
+              onClick={disconnectWallet}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.8)",
+                fontSize: "12px",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              Disconnect
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="p-4 max-w-md mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="text-center mb-6">
-            <MessageCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
-              Start New Chat
-            </h2>
-            <p className="text-gray-600">
-              Enter the wallet address of the person you want to chat with
-            </p>
-          </div>
+      <div className="form-section">
+        <div className="text-center mb-4">
+          <div style={{ fontSize: "3rem", marginBottom: "16px" }}>💬</div>
+          <h2
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              color: "#3b4a54",
+              marginBottom: "8px",
+            }}
+          >
+            Start New Chat
+          </h2>
+          <p className="text-gray">
+            Enter the wallet address of the person you want to chat with
+          </p>
+        </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Recipient Wallet Address
-              </label>
-              <input
-                type="text"
-                value={recipientAddress}
-                onChange={(e) => setRecipientAddress(e.target.value)}
-                placeholder="0x1234...5678"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
+        <div className="form-group">
+          <label className="label">Recipient Wallet Address</label>
+          <input
+            type="text"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="0x1234...5678"
+            className="input"
+          />
+        </div>
 
-            <button
-              onClick={handleStartChat}
-              disabled={isLoading || !recipientAddress.trim()}
-              className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-            >
-              {isLoading ? (
-                <Loader className="w-5 h-5 animate-spin mr-2" />
-              ) : (
-                <MessageCircle className="w-5 h-5 mr-2" />
-              )}
-              Start Chat
-            </button>
-          </div>
+        <button
+          onClick={handleStartChat}
+          disabled={isLoading || !recipientAddress.trim()}
+          className="button"
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {isLoading ? "⏳ " : "💬 "}
+          Start Chat
+        </button>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold text-blue-800 mb-2">💡 Tips</h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Make sure the recipient is registered</li>
-              <li>• Use valid Ethereum addresses</li>
-              <li>• Messages are stored on blockchain</li>
-            </ul>
-          </div>
+        <div
+          style={{
+            marginTop: "24px",
+            padding: "16px",
+            background: "#e8f5e8",
+            borderRadius: "8px",
+          }}
+        >
+          <h3
+            style={{ fontWeight: "600", color: "#00a884", marginBottom: "8px" }}
+          >
+            💡 Tips
+          </h3>
+          <ul
+            style={{
+              fontSize: "14px",
+              color: "#00a884",
+              listStyle: "none",
+              padding: 0,
+            }}
+          >
+            <li>• Make sure the recipient is registered</li>
+            <li>• Use valid Ethereum addresses</li>
+            <li>• Messages are stored on blockchain</li>
+          </ul>
         </div>
       </div>
     </div>
